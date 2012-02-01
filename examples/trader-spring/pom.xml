@@ -4,13 +4,13 @@
   <parent>
     <groupId>org.jbehave</groupId>
     <artifactId>jbehave-examples</artifactId>
-    <version>3.6-SNAPSHOT</version>
+    <version>3.5.4</version>
   </parent>
   <artifactId>jbehave-trader-spring-example</artifactId>
   <name>JBehave Trader Spring Example</name>
 
   <properties>
-    <spring.version>2.5.6</spring.version>
+    <spring.version>3.1.0.RELEASE</spring.version>
   </properties>
 
   <dependencyManagement>

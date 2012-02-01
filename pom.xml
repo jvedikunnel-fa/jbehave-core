@@ -36,6 +36,7 @@
     <module>jbehave-spring</module>
     <module>jbehave-weld</module>
     <module>archetypes</module>
+    <module>examples</module>
   </modules>
 
   <dependencies>
