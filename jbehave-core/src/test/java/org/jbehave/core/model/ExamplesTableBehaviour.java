@@ -18,6 +18,7 @@ import java.util.Properties;
 
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.jbehave.core.model.ExamplesTable.RowNotFound;
+import org.jbehave.core.model.TableTransformers.TableTransformer;
 import org.jbehave.core.steps.ConvertedParameters.ValueNotFound;
 import org.jbehave.core.steps.ParameterConverters;
 import org.jbehave.core.steps.ParameterConverters.MethodReturningConverter;
@@ -37,6 +38,8 @@ public class ExamplesTableBehaviour {
     private String tableAsString = "|one|two|\n" + "|11|12|\n" + "|21|22|\n";
 
     private String tableWithSpacesAsString = "|one |two | |\n" + "|11 |12 | |\n" + "| 21| 22| |\n";
+
+    private String landscapeTableAsString = "|one|11|21|\n" + "|two|12|22|\n";
 
     private String wikiTableAsString = "||one||two||\n" + "|11|12|\n" + "|21|22|\n";
 
@@ -143,10 +146,48 @@ public class ExamplesTableBehaviour {
         String tableWithProperties = "{trim=false}\n" + tableWithSpacesAsString;
         ExamplesTable table = new ExamplesTable(tableWithProperties);
         Properties properties = table.getProperties();
-        assertThat(properties.size(), equalTo(1));
         assertThat(properties.getProperty("trim"), equalTo("false"));
         ensureWhitespaceIsPreserved(table);
         assertThat(table.asString(), equalTo("|one |two | |\n|11 |12 | |\n| 21| 22| |\n"));
+    }
+
+    @Test
+    public void shouldParseTableWithSeparatorsSpecifiedViaProperties() {
+        String tableWithProperties = "{ignorableSeparator=!--,headerSeparator=!,valueSeparator=!}\n" + tableWithCommentsAsString.replace("|", "!");
+        ExamplesTable table = new ExamplesTable(tableWithProperties);
+        Properties properties = table.getProperties();
+        assertThat(properties.size(), equalTo(3));
+        assertThat(properties.getProperty("ignorableSeparator"), equalTo("!--"));
+        assertThat(properties.getProperty("headerSeparator"), equalTo("!"));
+        assertThat(properties.getProperty("valueSeparator"), equalTo("!"));
+        ensureColumnOrderIsPreserved(table);
+    }
+
+    @Test
+    public void shouldParseTableAsLandscape() {
+        String tableWithProperties = "{transformer=FROM_LANDSCAPE}\n" + landscapeTableAsString;
+        TableTransformers tableTransformers = new TableTransformers();
+        ExamplesTable table = new ExamplesTableFactory(tableTransformers).createExamplesTable(tableWithProperties);
+        Properties properties = table.getProperties();
+        assertThat(properties.getProperty("transformer"), equalTo("FROM_LANDSCAPE"));
+        ensureColumnOrderIsPreserved(table);
+    }
+
+    @Test
+    public void shouldParseTableWithCustomTransformerSpecifiedViaProperties() {
+        String tableWithProperties = "{transformer=myTransformer, trim=false}\n" + tableWithCommentsAsString;
+        TableTransformers tableTransformers = new TableTransformers();
+        tableTransformers.useTransformer("myTransformer", new TableTransformer(){
+
+            public String transform(String tableAsString, Properties properties) {
+                return tableWithSpacesAsString;
+            }
+            
+        });
+        ExamplesTable table = new ExamplesTableFactory(tableTransformers).createExamplesTable(tableWithProperties);
+        Properties properties = table.getProperties();
+        assertThat(properties.getProperty("transformer"), equalTo("myTransformer"));
+        ensureWhitespaceIsPreserved(table);
     }
 
     private void ensureColumnOrderIsPreserved(ExamplesTable table) {
@@ -359,6 +400,16 @@ public class ExamplesTableBehaviour {
       ExamplesTable table = new ExamplesTable(tableWithEmptyLine);
       assertThat(table.getRowCount(), equalTo(2));
       assertThat(table.asString(), equalTo("|one|two|\n|a|b|\n|c|d|\n"));
+    }
+
+    @Test
+    public void shouldHandleWrongNumberOfColumns() {
+        assertTableAsString("|a|b|\n|a|\n", "|a|b|\n|a||\n");
+        assertTableAsString("|a|b|\n|a|b|c|\n", "|a|b|\n|a|b|\n");
+    }
+
+    private void assertTableAsString(String tableAsString, String expectedTableAsString) {
+        assertThat(new ExamplesTable(tableAsString).asString(), equalTo(expectedTableAsString));
     }
 
     public Date convertDate(String value) throws ParseException {

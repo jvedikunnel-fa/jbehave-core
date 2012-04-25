@@ -27,6 +27,7 @@ import org.jbehave.core.steps.PendingStepMethodGenerator;
 import org.jbehave.core.steps.ProvidedStepsFactory;
 import org.jbehave.core.steps.Step;
 import org.jbehave.core.steps.StepCollector.Stage;
+import org.jbehave.core.steps.StepCreator.ParameterisedStep;
 import org.jbehave.core.steps.StepCreator.PendingStep;
 import org.jbehave.core.steps.StepResult;
 
@@ -284,13 +285,11 @@ public class StoryRunner {
                                 ScenarioType.NORMAL);
                     }
 
-                    // run given stories, if any
-                    runGivenStories(scenario, context);
-                    if (isParameterisedByExamples(scenario)) {
-                        // run parametrised scenarios by examples
-                        runParametrisedScenariosByExamples(context, scenario, storyAndScenarioMeta);
+                    if (isParameterisedByExamples(scenario)) { // run parametrised scenarios by examples
+                        runScenariosParametrisedByExamples(context, scenario, storyAndScenarioMeta);
                     } else { // run as plain old scenario
                         addMetaParameters(storyParameters, storyAndScenarioMeta);
+                        runGivenStories(scenario, storyParameters, context);
                         runScenarioSteps(context, scenario, storyParameters);
                     }
 
@@ -364,15 +363,16 @@ public class StoryRunner {
         storyFailure.set(null);
     }
 
-    private void runGivenStories(Scenario scenario, RunContext context) throws Throwable {
+    private void runGivenStories(Scenario scenario, Map<String, String> scenarioParameters, RunContext context) throws Throwable {
         GivenStories givenStories = scenario.getGivenStories();
         if (givenStories.getPaths().size() > 0) {
             reporter.get().givenStories(givenStories);
             for (GivenStory givenStory : givenStories.getStories()) {
                 RunContext childContext = context.childContextFor(givenStory);
-                // run given story, using any parameters if provided
+                // run given story, using any parameters provided
                 Story story = storyOfPath(context.configuration(), childContext.path());
-                run(childContext, story, givenStory.getParameters());
+                scenarioParameters.putAll(givenStory.getParameters());
+                run(childContext, story, scenarioParameters);
             }
         }
     }
@@ -381,8 +381,8 @@ public class StoryRunner {
         return scenario.getExamplesTable().getRowCount() > 0 && !scenario.getGivenStories().requireParameters();
     }
 
-    private void runParametrisedScenariosByExamples(RunContext context, Scenario scenario, Meta storyAndScenarioMeta)
-            throws InterruptedException {
+    private void runScenariosParametrisedByExamples(RunContext context, Scenario scenario, Meta storyAndScenarioMeta)
+            throws Throwable {
         ExamplesTable table = scenario.getExamplesTable();
         reporter.get().beforeExamples(scenario.getSteps(), table);
         for (Map<String, String> scenarioParameters : table.getRows()) {
@@ -391,6 +391,8 @@ public class StoryRunner {
                 context.resetState();
             }
             runBeforeOrAfterScenarioSteps(context, scenario, storyAndScenarioMeta, Stage.BEFORE, ScenarioType.EXAMPLE);
+            addMetaParameters(scenarioParameters, storyAndScenarioMeta);
+            runGivenStories(scenario, scenarioParameters, context);
             runScenarioSteps(context, scenario, scenarioParameters);
             runBeforeOrAfterScenarioSteps(context, scenario, storyAndScenarioMeta, Stage.AFTER, ScenarioType.EXAMPLE);
         }
@@ -465,7 +467,10 @@ public class StoryRunner {
     private final class FineSoFar implements State {
 
         public State run(Step step) {
-            UUIDExceptionWrapper storyFailureIfItHappened = storyFailure.get();
+            if ( step instanceof ParameterisedStep ){
+                ((ParameterisedStep)step).describeTo(reporter.get());
+            }
+            UUIDExceptionWrapper storyFailureIfItHappened = storyFailure.get(); 
             StepResult result = step.perform(storyFailureIfItHappened);
             result.describeTo(reporter.get());
             UUIDExceptionWrapper stepFailure = result.getFailure();

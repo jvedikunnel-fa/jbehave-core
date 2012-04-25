@@ -17,6 +17,7 @@ import java.util.Map;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertNotNull;
 
 public class CompositeStepCandidateBehaviour {
 
@@ -151,7 +152,15 @@ public class CompositeStepCandidateBehaviour {
     public void shouldMatchCompositeStepsAndCreateComposedNestedSteps() {
         CompositeNestedSteps steps = new CompositeNestedSteps();
         List<StepCandidate> candidates = steps.listCandidates();
-        StepCandidate candidate = candidates.get(0);
+        // find main step
+        StepCandidate candidate = null;
+        for(StepCandidate cand: candidates) {
+            if(cand.getPatternAsString().equals("all buttons are enabled")) {
+                candidate = cand;
+                break;
+            }
+        }
+        assertNotNull(candidate);
         assertThat(candidate.isComposite(), is(true));
         Map<String, String> noNamedParameters = new HashMap<String, String>();
         List<Step> composedSteps = new ArrayList<Step>();
@@ -216,4 +225,35 @@ public class CompositeStepCandidateBehaviour {
 
     }
 
+    @Test
+    public void shouldMatchCompositeStepsWhenStepParameterIsProvided(){
+        CompositeStepsParameterMatching steps = new CompositeStepsParameterMatching();
+        List<StepCandidate> candidates = steps.listCandidates();
+        StepCandidate candidate = candidates.get(0);
+        assertThat(candidate.isComposite(), is(true));
+        Map<String, String> noNamedParameters = new HashMap<String, String>();
+        List<Step> composedSteps = new ArrayList<Step>();
+        candidate.addComposedSteps(composedSteps, "When I login", noNamedParameters, candidates);
+        assertThat(composedSteps.size(), equalTo(1));
+        for (Step step : composedSteps) {
+            step.perform(null);
+        }
+        assertThat(steps.button, equalTo("Login"));
+    }
+    
+    static class CompositeStepsParameterMatching extends Steps {
+        private String button;
+        
+
+        @When("I login")
+        @Composite(steps={"When I click the Login button"})
+        public void whenILogin(){}
+        
+        @When("I click the $button button")
+        public void whenIClickTheButton(@Named("button") String button){
+            this.button = button;
+        }
+        
+    }
+    
 }

@@ -46,6 +46,8 @@ public class TraderSteps {
     private List<Trader> searchedTraders;
 	private Date date;
     private ExamplesTable ranksTable;
+    private String stockExchange;
+    private String assetClass;
       
 	public TraderSteps() {
 		this(new TradingService());
@@ -73,7 +75,7 @@ public class TraderSteps {
 		assertThat(date, equalTo(this.date));
     }
 
-    @Given("a trader of name %trader")
+    @Given("a trader of {name|id} %trader")
     public void aTrader(Trader trader) {
         this.trader = trader;
     }
@@ -125,6 +127,18 @@ public class TraderSteps {
         return traders;
     }
     
+    @Given("the stock exchange %stockExchange")
+    @Alias("the stock exchange <stockExchange>")    
+    public void theStockExchange(@Named("stockExchange") String stockExchange) {
+        this.stockExchange = stockExchange;        
+    }
+
+    @Given("the asset class %assetClass")
+    @Alias("the asset class <assetClass>")    
+    public void theAssetClass(@Named("assetClass") String assetClass) {
+        this.assetClass = assetClass;
+    }
+
     @Given("a stock of symbol %symbol and a threshold of %threshold")
     @Alias("a stock of <symbol> and a <threshold>") // alias used with examples table
     public void aStock(@Named("symbol") String symbol, @Named("threshold") double threshold) {

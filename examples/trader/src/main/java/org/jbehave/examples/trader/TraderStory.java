@@ -14,6 +14,7 @@ import org.jbehave.core.io.StoryPathResolver;
 import org.jbehave.core.io.UnderscoredCamelCaseResolver;
 import org.jbehave.core.junit.JUnitStory;
 import org.jbehave.core.model.ExamplesTableFactory;
+import org.jbehave.core.model.TableTransformers;
 import org.jbehave.core.parsers.RegexPrefixCapturingPatternParser;
 import org.jbehave.core.parsers.RegexStoryParser;
 import org.jbehave.core.reporters.CrossReference;
@@ -32,6 +33,7 @@ import org.jbehave.examples.trader.steps.CompositeNestedSteps;
 import org.jbehave.examples.trader.steps.CompositeSteps;
 import org.jbehave.examples.trader.steps.MetaParametrisationSteps;
 import org.jbehave.examples.trader.steps.NamedParametersSteps;
+import org.jbehave.examples.trader.steps.ParameterDelimitersSteps;
 import org.jbehave.examples.trader.steps.ParametrisedSteps;
 import org.jbehave.examples.trader.steps.PendingSteps;
 import org.jbehave.examples.trader.steps.PriorityMatchingSteps;
@@ -79,7 +81,7 @@ public abstract class TraderStory extends JUnitStory {
         // factory to allow parameter conversion and loading from external
         // resources (used by StoryParser too)
         ExamplesTableFactory examplesTableFactory = new ExamplesTableFactory(new LocalizedKeywords(),
-                new LoadFromClasspath(embeddableClass), parameterConverters);
+                new LoadFromClasspath(embeddableClass), parameterConverters, new TableTransformers());
         // add custom converters
         parameterConverters.addConverters(new DateConverter(new SimpleDateFormat("yyyy-MM-dd")),
                 new ExamplesTableConverter(examplesTableFactory));
@@ -97,16 +99,16 @@ public abstract class TraderStory extends JUnitStory {
                                 .withFailureTrace(true).withFailureTraceCompression(true).withCrossReference(xref))
                 .useParameterConverters(parameterConverters)
                 // use '%' instead of '$' to identify parameters
-                .useStepPatternParser(new RegexPrefixCapturingPatternParser("%")) 
-                .useStepMonitor(xref.getStepMonitor());
+                .useStepPatternParser(new RegexPrefixCapturingPatternParser("%")).useStepMonitor(xref.getStepMonitor());
     }
 
     @Override
     public InjectableStepsFactory stepsFactory() {
-        return new InstanceStepsFactory(configuration(), new TraderSteps(new TradingService()), new AndSteps(), new MetaParametrisationSteps(),
-                new CalendarSteps(), new PriorityMatchingSteps(), new PendingSteps(), new ParametrisedSteps(), new SandpitSteps(),
-                new SearchSteps(), new BeforeAfterSteps(), new CompositeSteps(), new CompositeNestedSteps(), new NamedParametersSteps());
+        return new InstanceStepsFactory(configuration(), new TraderSteps(new TradingService()), new AndSteps(),
+                new MetaParametrisationSteps(), new CalendarSteps(), new PriorityMatchingSteps(), new PendingSteps(),
+                new ParametrisedSteps(), new SandpitSteps(), new SearchSteps(), new BeforeAfterSteps(),
+                new CompositeSteps(), new CompositeNestedSteps(), new NamedParametersSteps(),
+                new ParameterDelimitersSteps());
     }
-
 
 }
